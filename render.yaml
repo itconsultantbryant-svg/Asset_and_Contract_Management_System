@@ -4,7 +4,7 @@ services:
     name: acms-app
     env: node
     plan: starter
-    buildCommand: npm install && cd server && npm install --production && cd ../client && env -u NODE_ENV npm install && npm run build
+    buildCommand: npm install && cd server && npm install --production && cd ../client && NODE_ENV=development npm install && NODE_ENV=production npm run build
     startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
