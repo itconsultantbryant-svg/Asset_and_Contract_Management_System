@@ -114,10 +114,11 @@ class Database {
           });
         }
       } else {
-        // PostgreSQL - modify INSERT to include RETURNING id
-        const modifiedSql = this.preparePostgresInsert(sql);
+        // PostgreSQL - convert placeholders and modify INSERT to include RETURNING id
+        const { sql: convertedSql, params: convertedParams } = this.convertPlaceholders(sql, params);
+        const modifiedSql = this.preparePostgresInsert(convertedSql);
         
-        this.db.query(modifiedSql, params)
+        this.db.query(modifiedSql, convertedParams)
           .then(result => {
             if (sql.trim().toUpperCase().startsWith('SELECT')) {
               resolve(result.rows);
