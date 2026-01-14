@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 router.use(authenticate);
 
 // Date helpers for SQLite vs PostgreSQL
-const isPostgres = db && db.type === 'postgresql';
+const isPostgres = process.env.DB_TYPE === 'postgresql';
 const SQL_NOW_DATE = isPostgres ? 'CURRENT_DATE' : "DATE('now')";
 const SQL_START_OF_MONTH = isPostgres ? "date_trunc('month', CURRENT_DATE)" : "DATE('now', 'start of month')";
 const SQL_PLUS_30_DAYS = isPostgres ? "CURRENT_DATE + INTERVAL '30 days'" : "DATE('now', '+30 days')";
@@ -139,14 +139,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Stock movements this month
-      const stockMovementsThisMonth = await db.get(`
-        SELECT 
-          COUNT(*) as count,
-          SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value,
-          SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value
-        FROM stock_movements
-        WHERE created_at >= ${SQL_START_OF_MONTH}
-      `);
+      const stockMovementsThisMonth = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count, SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value, SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value FROM stock_movements WHERE created_at >= date_trunc('month', CURRENT_DATE)`
+          : `SELECT COUNT(*) as count, SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value, SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value FROM stock_movements WHERE DATE(created_at) >= DATE('now', 'start of month')`
+      );
 
       // Active contracts
       const activeContracts = await db.get(`
@@ -164,32 +161,23 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Contracts expiring soon (90, 60, 30 days)
-      const expiring90Days = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE status = 'Active'
-          AND end_date <= ${SQL_PLUS_90_DAYS}
-          AND end_date >= ${SQL_NOW_DATE}
-          AND deleted_at IS NULL
-      `);
+      const expiring90Days = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= CURRENT_DATE + INTERVAL '90 days' AND end_date >= CURRENT_DATE AND deleted_at IS NULL`
+          : `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= DATE('now', '+90 days') AND end_date >= DATE('now') AND deleted_at IS NULL`
+      );
 
-      const expiring60Days = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE status = 'Active'
-          AND end_date <= ${SQL_PLUS_60_DAYS}
-          AND end_date >= ${SQL_NOW_DATE}
-          AND deleted_at IS NULL
-      `);
+      const expiring60Days = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= CURRENT_DATE + INTERVAL '60 days' AND end_date >= CURRENT_DATE AND deleted_at IS NULL`
+          : `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= DATE('now', '+60 days') AND end_date >= DATE('now') AND deleted_at IS NULL`
+      );
 
-      const expiring30Days = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE status = 'Active'
-          AND end_date <= ${SQL_PLUS_30_DAYS}
-          AND end_date >= ${SQL_NOW_DATE}
-          AND deleted_at IS NULL
-      `);
+      const expiring30Days = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= CURRENT_DATE + INTERVAL '30 days' AND end_date >= CURRENT_DATE AND deleted_at IS NULL`
+          : `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= DATE('now', '+30 days') AND end_date >= DATE('now') AND deleted_at IS NULL`
+      );
 
       // Total contracts value
       const totalContractsValue = await db.get(`
@@ -199,12 +187,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Contracts created this month
-      const contractsThisMonth = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE deleted_at IS NULL
-          AND created_at >= ${SQL_START_OF_MONTH}
-      `);
+      const contractsThisMonth = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE deleted_at IS NULL AND created_at >= date_trunc('month', CURRENT_DATE)`
+          : `SELECT COUNT(*) as count FROM contracts WHERE deleted_at IS NULL AND DATE(created_at) >= DATE('now', 'start of month')`
+      );
 
       // Pending contract approvals
       const pendingApprovals = await db.get(`
@@ -235,11 +222,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Total fuel consumption (last 30 days)
-      const fuelConsumption = await db.get(`
-        SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost
-        FROM fuel_logs
-        WHERE purchase_date >= ${SQL_MINUS_30_DAYS}
-      `);
+      const fuelConsumption = await db.get(
+        isPostgres
+          ? `SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost FROM fuel_logs WHERE purchase_date >= CURRENT_DATE - INTERVAL '30 days'`
+          : `SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost FROM fuel_logs WHERE purchase_date >= DATE('now', '-30 days')`
+      );
 
       // Total users
       const totalUsers = await db.get(
@@ -365,19 +352,18 @@ router.get('/summary', async (req, res) => {
       const totalVehicles = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = "Active"');
 
       // Upcoming maintenance
-      const upcomingMaintenance = await db.get(`
-        SELECT COUNT(*) as count
-        FROM vehicle_maintenance
-        WHERE status IN ('Scheduled', 'In Progress')
-          AND (scheduled_date <= ${SQL_PLUS_30_DAYS} OR next_service_date <= ${SQL_PLUS_30_DAYS})
-      `);
+      const upcomingMaintenance = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM vehicle_maintenance WHERE status IN ('Scheduled', 'In Progress') AND (scheduled_date <= CURRENT_DATE + INTERVAL '30 days' OR next_service_date <= CURRENT_DATE + INTERVAL '30 days')`
+          : `SELECT COUNT(*) as count FROM vehicle_maintenance WHERE status IN ('Scheduled', 'In Progress') AND (scheduled_date <= DATE('now', '+30 days') OR next_service_date <= DATE('now', '+30 days'))`
+      );
 
       // Fuel consumption (last 30 days)
-      const fuelConsumption = await db.get(`
-        SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost
-        FROM fuel_logs
-        WHERE purchase_date >= ${SQL_MINUS_30_DAYS}
-      `);
+      const fuelConsumption = await db.get(
+        isPostgres
+          ? `SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost FROM fuel_logs WHERE purchase_date >= CURRENT_DATE - INTERVAL '30 days'`
+          : `SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost FROM fuel_logs WHERE purchase_date >= DATE('now', '-30 days')`
+      );
 
       // Stock summary (read-only)
       const totalStockItems = await db.get('SELECT COUNT(*) as count FROM stock_items WHERE deleted_at IS NULL');
@@ -463,44 +449,32 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Stock movements (last 30 days)
-      const recentMovements = await db.query(`
-        SELECT 
-          sm.*,
-          si.name as item_name,
-          smr.name as reason_name
-        FROM stock_movements sm
-        LEFT JOIN stock_items si ON sm.stock_item_id = si.id
-        LEFT JOIN stock_movement_reasons smr ON sm.reason_id = smr.id
-        WHERE sm.created_at >= ${SQL_MINUS_30_DAYS}
-        ORDER BY sm.created_at DESC
-        LIMIT 10
-      `);
+      const recentMovements = await db.query(
+        isPostgres
+          ? `SELECT sm.*, si.name as item_name, smr.name as reason_name FROM stock_movements sm LEFT JOIN stock_items si ON sm.stock_item_id = si.id LEFT JOIN stock_movement_reasons smr ON sm.reason_id = smr.id WHERE sm.created_at >= CURRENT_DATE - INTERVAL '30 days' ORDER BY sm.created_at DESC LIMIT 10`
+          : `SELECT sm.*, si.name as item_name, smr.name as reason_name FROM stock_movements sm LEFT JOIN stock_items si ON sm.stock_item_id = si.id LEFT JOIN stock_movement_reasons smr ON sm.reason_id = smr.id WHERE sm.created_at >= DATE('now', '-30 days') ORDER BY sm.created_at DESC LIMIT 10`
+      );
 
       // Stock movements this month
-      const movementsThisMonth = await db.get(`
-        SELECT 
-          COUNT(*) as count,
-          SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value,
-          SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value
-        FROM stock_movements
-        WHERE created_at >= ${SQL_START_OF_MONTH}
-      `);
+      const movementsThisMonth = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count, SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value, SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value FROM stock_movements WHERE created_at >= date_trunc('month', CURRENT_DATE)`
+          : `SELECT COUNT(*) as count, SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value, SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value FROM stock_movements WHERE DATE(created_at) >= DATE('now', 'start of month')`
+      );
 
       // Stock entries (last 30 days)
-      const recentEntries = await db.get(`
-        SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value
-        FROM stock_movements
-        WHERE movement_type = 'Entry'
-          AND created_at >= ${SQL_MINUS_30_DAYS}
-      `);
+      const recentEntries = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value FROM stock_movements WHERE movement_type = 'Entry' AND created_at >= CURRENT_DATE - INTERVAL '30 days'`
+          : `SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value FROM stock_movements WHERE movement_type = 'Entry' AND created_at >= DATE('now', '-30 days')`
+      );
 
       // Stock exits (last 30 days)
-      const recentExits = await db.get(`
-        SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value
-        FROM stock_movements
-        WHERE movement_type = 'Exit'
-          AND created_at >= ${SQL_MINUS_30_DAYS}
-      `);
+      const recentExits = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value FROM stock_movements WHERE movement_type = 'Exit' AND created_at >= CURRENT_DATE - INTERVAL '30 days'`
+          : `SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value FROM stock_movements WHERE movement_type = 'Exit' AND created_at >= DATE('now', '-30 days')`
+      );
 
       // Assets summary (view only)
       const totalAssets = await db.get('SELECT COUNT(*) as count FROM assets WHERE deleted_at IS NULL');
@@ -590,8 +564,19 @@ router.get('/summary', async (req, res) => {
       userRole
     });
   } catch (error) {
+    console.error('❌ Dashboard summary error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userRole: req.user?.role,
+      userId: req.user?.id
+    });
     logger.error('Get dashboard summary error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get dashboard summary' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get dashboard summary',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
   }
 });
 
