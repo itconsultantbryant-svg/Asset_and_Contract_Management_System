@@ -66,6 +66,19 @@ class Database {
     }
   }
 
+  // Helper to convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.)
+  convertPlaceholders(sql, params) {
+    if (this.type !== 'postgresql') {
+      return { sql, params };
+    }
+    
+    // Replace ? with $1, $2, $3, etc.
+    let paramIndex = 1;
+    const convertedSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    
+    return { sql: convertedSql, params };
+  }
+
   // Helper to modify INSERT queries for PostgreSQL to include RETURNING id
   preparePostgresInsert(sql) {
     if (this.type !== 'postgresql') return sql;
@@ -130,7 +143,10 @@ class Database {
           else resolve(row);
         });
       } else {
-        this.db.query(sql, params)
+        // PostgreSQL - convert placeholders
+        const { sql: convertedSql, params: convertedParams } = this.convertPlaceholders(sql, params);
+        
+        this.db.query(convertedSql, convertedParams)
           .then(result => resolve(result.rows[0] || null))
           .catch(reject);
       }

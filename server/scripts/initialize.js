@@ -531,10 +531,11 @@ async function seedInitialData() {
   if (!existingAdmin) {
     const adminPassword = await hashPassword('admin123'); // Change in production!
     
+    const isActive = process.env.DB_TYPE === 'postgresql' ? true : 1;
     await db.query(`
       INSERT INTO users (username, email, password_hash, full_name, role, is_active)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, ['admin', 'admin@planliberia.org', adminPassword, 'System Administrator', 'Administrator', 1]);
+    `, ['admin', 'admin@planliberia.org', adminPassword, 'System Administrator', 'Administrator', isActive]);
     
     logger.info('Default admin user created (username: admin, password: admin123)');
   }
