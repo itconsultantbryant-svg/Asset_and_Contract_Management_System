@@ -117,15 +117,6 @@ class Database {
         const { sql: convertedSql, params: convertedParams } = this.convertPlaceholders(sql, params);
         const modifiedSql = this.preparePostgresInsert(convertedSql);
         
-        // Debug logging for troubleshooting
-        if (process.env.NODE_ENV === 'production' && modifiedSql.includes('INSERT')) {
-          logger.debug('PostgreSQL INSERT query:', { 
-            original: sql.substring(0, 100), 
-            converted: modifiedSql.substring(0, 150),
-            paramCount: convertedParams.length 
-          });
-        }
-        
         this.db.query(modifiedSql, convertedParams)
           .then(result => {
             if (sql.trim().toUpperCase().startsWith('SELECT')) {
@@ -139,10 +130,17 @@ class Database {
             }
           })
           .catch(err => {
+            console.error('❌ PostgreSQL query error:');
+            console.error('  Error:', err.message);
+            console.error('  SQL (first 300 chars):', modifiedSql.substring(0, 300));
+            console.error('  Params count:', convertedParams.length);
+            console.error('  Original SQL (first 200 chars):', sql.substring(0, 200));
             logger.error('PostgreSQL query error:', {
               error: err.message,
-              sql: modifiedSql.substring(0, 200),
-              paramCount: convertedParams.length
+              sql: modifiedSql.substring(0, 300),
+              originalSql: sql.substring(0, 200),
+              paramCount: convertedParams.length,
+              params: convertedParams.map((p, i) => ({ index: i, type: typeof p, value: String(p).substring(0, 50) }))
             });
             reject(err);
           });
