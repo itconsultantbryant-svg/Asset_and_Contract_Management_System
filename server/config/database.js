@@ -83,13 +83,14 @@ class Database {
   preparePostgresInsert(sql) {
     if (this.type !== 'postgresql') return sql;
     
-    const trimmed = sql.trim();
-    const upper = trimmed.toUpperCase();
+    // Normalize whitespace - replace multiple spaces/newlines with single space
+    const normalized = sql.replace(/\s+/g, ' ').trim();
+    const upper = normalized.toUpperCase();
     
     // Only modify INSERT statements that don't already have RETURNING
     if (upper.startsWith('INSERT') && !upper.includes('RETURNING')) {
-      // Remove trailing semicolon and whitespace
-      let cleanSql = trimmed.replace(/[;\s]*$/, '').trim();
+      // Remove trailing semicolon if present
+      let cleanSql = normalized.replace(/;?\s*$/, '').trim();
       // Add RETURNING id at the end
       return `${cleanSql} RETURNING id`;
     }
