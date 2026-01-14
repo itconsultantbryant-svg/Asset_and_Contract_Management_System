@@ -12,9 +12,35 @@ export const useAuth = () => {
   return context;
 };
 
-// Construct API URL - append /api if not already present
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Construct API URL - use window.location for production, env var for development
+let baseURL;
+
+if (process.env.NODE_ENV === 'production') {
+  // In production, use the current origin (same domain as the app)
+  baseURL = window.location.origin;
+} else {
+  // In development, use the env var or default
+  baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+}
+
+// Clean up the base URL - remove any service name paths that Render might add
+// Render might set this to something like https://acms-app-4p4b.onrender.com/acms-app-4p4b
+// We need just the domain: https://acms-app-4p4b.onrender.com
+if (baseURL.includes('/acms-app-')) {
+  const urlParts = baseURL.split('/acms-app-');
+  baseURL = urlParts[0];
+}
+
+// Remove trailing slashes
+baseURL = baseURL.replace(/\/+$/, '');
+
+// Append /api if not already present
 const API_URL = baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`;
+
+console.log('🌐 Environment:', process.env.NODE_ENV);
+console.log('🌐 Base URL:', baseURL);
+console.log('🌐 API URL:', API_URL);
+console.log('🌐 Window origin:', window.location.origin);
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;
