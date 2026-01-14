@@ -1,3 +1,8 @@
+// Log startup immediately for debugging
+console.log('🚀 Starting ACMS Server...');
+console.log('Node version:', process.version);
+console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -8,6 +13,8 @@ require('dotenv').config();
 const logger = require('./utils/logger');
 const db = require('./config/database');
 const { initializeDatabase } = require('./scripts/initialize');
+
+console.log('✅ Dependencies loaded');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -132,67 +139,88 @@ if (process.env.NODE_ENV !== 'production') {
 // Initialize database and start server
 async function startServer() {
   try {
+    console.log('📁 Checking directories...');
     // Ensure required directories exist
     const fs = require('fs');
     const path = require('path');
     const uploadsDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
-      logger.info('Created uploads directory');
+      console.log('✅ Created uploads directory');
     }
     
     // Log environment info for debugging
-    logger.info('Starting server...');
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`Database type: ${process.env.DB_TYPE || 'sqlite'}`);
-    logger.info(`Port: ${PORT}`);
+    console.log('🔍 Environment check:');
+    console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.log(`  PORT: ${PORT}`);
+    console.log(`  DB_TYPE: ${process.env.DB_TYPE || 'sqlite (default)'}`);
     
     if (process.env.DB_TYPE === 'postgresql') {
-      logger.info('PostgreSQL configuration:');
-      logger.info(`  DB_HOST: ${process.env.DB_HOST ? '***' : 'NOT SET'}`);
-      logger.info(`  DB_PORT: ${process.env.DB_PORT || '5432'}`);
-      logger.info(`  DB_NAME: ${process.env.DB_NAME || 'acms'}`);
-      logger.info(`  DB_USER: ${process.env.DB_USER || 'acms_user'}`);
-      logger.info(`  DB_PASSWORD: ${process.env.DB_PASSWORD ? '***' : 'NOT SET'}`);
+      console.log('📊 PostgreSQL configuration:');
+      console.log(`  DB_HOST: ${process.env.DB_HOST ? 'SET ✓' : 'NOT SET ✗'}`);
+      console.log(`  DB_PORT: ${process.env.DB_PORT || '5432'}`);
+      console.log(`  DB_NAME: ${process.env.DB_NAME || 'acms'}`);
+      console.log(`  DB_USER: ${process.env.DB_USER || 'acms_user'}`);
+      console.log(`  DB_PASSWORD: ${process.env.DB_PASSWORD ? 'SET ✓' : 'NOT SET ✗'}`);
       
       if (!process.env.DB_HOST || !process.env.DB_PASSWORD) {
+        console.error('❌ ERROR: Missing required database environment variables!');
+        console.error('Please set the following in Render Dashboard → Environment:');
+        console.error('  - DB_HOST');
+        console.error('  - DB_PORT');
+        console.error('  - DB_NAME');
+        console.error('  - DB_USER');
+        console.error('  - DB_PASSWORD');
         logger.error('Missing required database environment variables!');
-        logger.error('Please set DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in your Render environment variables.');
         process.exit(1);
       }
     }
     
+    console.log('🔌 Connecting to database...');
     db.connect();
-    logger.info('Database connection established');
+    console.log('✅ Database connection established');
     
     // Test database connection with a simple query
     try {
       if (process.env.DB_TYPE === 'postgresql') {
+        console.log('🧪 Testing PostgreSQL connection...');
         await db.query('SELECT NOW()');
-        logger.info('PostgreSQL connection test successful');
+        console.log('✅ PostgreSQL connection test successful');
       }
     } catch (dbError) {
+      console.error('❌ Database connection test failed:', dbError.message);
+      console.error('Full error:', dbError);
       logger.error('Database connection test failed:', dbError);
-      logger.error('Please check your database configuration and ensure the database is accessible.');
       throw dbError;
     }
     
+    console.log('🗄️ Initializing database...');
     await initializeDatabase();
-    logger.info('Database initialized successfully');
+    console.log('✅ Database initialized successfully');
     
+    console.log(`🚀 Starting server on port ${PORT}...`);
     app.listen(PORT, '0.0.0.0', () => {
+      console.log('✅✅✅ SERVER STARTED SUCCESSFULLY ✅✅✅');
+      console.log(`   Port: ${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   Database: ${process.env.DB_TYPE || 'sqlite'}`);
       logger.info(`✅ Server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Database type: ${process.env.DB_TYPE || 'sqlite'}`);
-      logger.info(`Server URL: http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
-    logger.error('❌ Failed to start server:', error);
-    logger.error('Error message:', error.message);
+    console.error('❌❌❌ SERVER STARTUP FAILED ❌❌❌');
+    console.error('Error message:', error.message);
+    console.error('Error name:', error.name);
     if (error.stack) {
-      logger.error('Error stack:', error.stack);
+      console.error('Stack trace:');
+      console.error(error.stack);
     }
-    logger.error('Environment check:', {
+    logger.error('Failed to start server:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
       dbType: process.env.DB_TYPE,
       hasDbHost: !!process.env.DB_HOST,
       hasDbPort: !!process.env.DB_PORT,

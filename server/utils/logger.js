@@ -28,15 +28,19 @@ const logger = winston.createLogger({
   ]
 });
 
-// Add console transport in development
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
+// Always add console transport for Render logs visibility
+logger.add(new winston.transports.Console({
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(({ timestamp, level, message, ...meta }) => {
+      let msg = `${timestamp} [${level}]: ${message}`;
+      if (Object.keys(meta).length > 0) {
+        msg += ` ${JSON.stringify(meta)}`;
+      }
+      return msg;
+    })
+  )
+}));
 
 module.exports = logger;
 
