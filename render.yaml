@@ -13,26 +13,18 @@ services:
         value: 10000
       - key: DB_TYPE
         value: postgresql
+      # Database connection variables - Set these manually after creating PostgreSQL database
+      # Go to your PostgreSQL service → "Connections" → Copy the values
       - key: DB_HOST
-        fromDatabase:
-          name: acms-database
-          property: host
+        sync: false
       - key: DB_PORT
-        fromDatabase:
-          name: acms-database
-          property: port
+        sync: false
       - key: DB_NAME
-        fromDatabase:
-          name: acms-database
-          property: database
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: acms-database
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: acms-database
-          property: password
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
@@ -56,11 +48,3 @@ services:
           type: web
           name: acms-app
           property: host
-
-  # PostgreSQL Database
-  - type: pg
-    name: acms-database
-    plan: starter
-    databaseName: acms
-    user: acms_user
-
