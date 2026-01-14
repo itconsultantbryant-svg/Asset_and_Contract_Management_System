@@ -33,11 +33,17 @@ class Database {
     } else if (this.type === 'postgresql') {
       // Validate required PostgreSQL environment variables
       if (!process.env.DB_PASSWORD) {
-        throw new Error('DB_PASSWORD is required for PostgreSQL connection');
+        logger.error('DB_PASSWORD is required for PostgreSQL connection');
+        throw new Error('DB_PASSWORD is required for PostgreSQL connection. Please set it in your environment variables.');
+      }
+      
+      if (!process.env.DB_HOST) {
+        logger.error('DB_HOST is required for PostgreSQL connection');
+        throw new Error('DB_HOST is required for PostgreSQL connection. Please set it in your environment variables.');
       }
       
       this.db = new Pool({
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST,
         port: parseInt(process.env.DB_PORT || '5432', 10),
         database: process.env.DB_NAME || 'acms',
         user: process.env.DB_USER || 'acms_user',
@@ -50,18 +56,11 @@ class Database {
 
       this.db.on('error', (err) => {
         logger.error('PostgreSQL connection error:', err);
+        this.connected = false;
       });
 
-      // Test connection
-      this.db.query('SELECT NOW()')
-        .then(() => {
-          logger.info('PostgreSQL database connected successfully');
-          this.connected = true;
-        })
-        .catch((err) => {
-          logger.error('PostgreSQL connection test failed:', err);
-          throw err;
-        });
+      logger.info('PostgreSQL pool created. Connection will be tested on first query.');
+      this.connected = true;
     } else {
       throw new Error(`Unsupported database type: ${this.type}`);
     }
