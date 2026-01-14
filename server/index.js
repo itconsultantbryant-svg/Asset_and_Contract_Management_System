@@ -132,18 +132,40 @@ if (process.env.NODE_ENV !== 'production') {
 // Initialize database and start server
 async function startServer() {
   try {
+    // Ensure required directories exist
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      logger.info('Created uploads directory');
+    }
+    
     db.connect();
     logger.info('Database connected successfully');
+    
+    // For PostgreSQL, wait a moment for connection to establish
+    if (process.env.DB_TYPE === 'postgresql') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
     
     await initializeDatabase();
     logger.info('Database initialized');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Database type: ${process.env.DB_TYPE || 'sqlite'}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      dbType: process.env.DB_TYPE,
+      hasDbHost: !!process.env.DB_HOST,
+      hasDbPassword: !!process.env.DB_PASSWORD
+    });
     process.exit(1);
   }
 }

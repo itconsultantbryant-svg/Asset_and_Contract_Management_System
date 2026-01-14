@@ -31,22 +31,37 @@ class Database {
         this.db.run('PRAGMA foreign_keys = ON');
       });
     } else if (this.type === 'postgresql') {
+      // Validate required PostgreSQL environment variables
+      if (!process.env.DB_PASSWORD) {
+        throw new Error('DB_PASSWORD is required for PostgreSQL connection');
+      }
+      
       this.db = new Pool({
         host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
+        port: parseInt(process.env.DB_PORT || '5432', 10),
         database: process.env.DB_NAME || 'acms',
         user: process.env.DB_USER || 'acms_user',
         password: process.env.DB_PASSWORD,
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        connectionTimeoutMillis: 10000, // Increased timeout for initial connection
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       });
 
       this.db.on('error', (err) => {
         logger.error('PostgreSQL connection error:', err);
       });
 
-      logger.info('PostgreSQL database connected');
+      // Test connection
+      this.db.query('SELECT NOW()')
+        .then(() => {
+          logger.info('PostgreSQL database connected successfully');
+          this.connected = true;
+        })
+        .catch((err) => {
+          logger.error('PostgreSQL connection test failed:', err);
+          throw err;
+        });
     } else {
       throw new Error(`Unsupported database type: ${this.type}`);
     }
