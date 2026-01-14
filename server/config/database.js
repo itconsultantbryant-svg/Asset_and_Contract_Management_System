@@ -88,11 +88,10 @@ class Database {
     
     // Only modify INSERT statements that don't already have RETURNING
     if (upper.startsWith('INSERT') && !upper.includes('RETURNING')) {
-      // Extract table name and add RETURNING id
-      const match = trimmed.match(/INSERT\s+INTO\s+(\w+)/i);
-      if (match) {
-        return `${trimmed} RETURNING id`;
-      }
+      // Remove trailing semicolon if present
+      let cleanSql = trimmed.replace(/;\s*$/, '');
+      // Add RETURNING id before any semicolon
+      return `${cleanSql} RETURNING id`;
     }
     
     return sql;
