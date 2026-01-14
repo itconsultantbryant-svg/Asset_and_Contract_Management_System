@@ -1,0 +1,26 @@
+{
+  "name": "acms-plan-liberia",
+  "version": "1.0.0",
+  "description": "Asset & Contract Management System for Plan International Liberia",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "cd client && npm run build",
+    "test": "cd server && npm test"
+  },
+  "keywords": [
+    "asset-management",
+    "contract-management",
+    "inventory",
+    "plan-international"
+  ],
+  "author": "Plan International Liberia",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
