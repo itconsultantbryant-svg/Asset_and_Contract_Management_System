@@ -541,7 +541,7 @@ router.get('/summary', async (req, res) => {
     // User-specific notifications count
     const unreadNotifications = await db.get(
       isPostgres
-        ? `SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = false`
+        ? `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = false`
         : `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0`,
       [userId]
     );
