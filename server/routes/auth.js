@@ -18,24 +18,50 @@ router.post('/login', [
     }
 
     const { username, password } = req.body;
+    
+    console.log(`🔐 Login attempt for username: ${username}`);
 
     // Find user
-    const user = await db.get(
-      'SELECT * FROM users WHERE username = ? AND deleted_at IS NULL',
-      [username]
-    );
+    let user;
+    try {
+      user = await db.get(
+        'SELECT * FROM users WHERE username = ? AND deleted_at IS NULL',
+        [username]
+      );
+      console.log(`📋 User lookup result:`, user ? `Found user ID ${user.id}` : 'User not found');
+    } catch (dbError) {
+      console.error('❌ Database error during user lookup:', dbError);
+      logger.error('Database error during login:', dbError);
+      return res.status(500).json({ success: false, message: 'Database error during login' });
+    }
 
     if (!user) {
+      logger.warn(`Login attempt with invalid username: ${username}`);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    if (!user.is_active) {
+    // Handle boolean is_active for PostgreSQL (true/false) vs SQLite (1/0)
+    const isActive = user.is_active === true || user.is_active === 1 || user.is_active === '1' || user.is_active === 'true';
+    console.log(`✅ User is_active value: ${user.is_active}, interpreted as: ${isActive}`);
+    
+    if (!isActive) {
+      logger.warn(`Login attempt for inactive account: ${username}`);
       return res.status(401).json({ success: false, message: 'Account is inactive' });
     }
 
     // Verify password
+    if (!user.password_hash) {
+      logger.error(`User ${username} has no password hash`);
+      console.error(`❌ User ${username} has no password hash`);
+      return res.status(500).json({ success: false, message: 'Account configuration error' });
+    }
+    
+    console.log(`🔑 Verifying password for user: ${username}`);
     const isValidPassword = await comparePassword(password, user.password_hash);
+    console.log(`🔑 Password verification result: ${isValidPassword}`);
+    
     if (!isValidPassword) {
+      logger.warn(`Login attempt with invalid password for user: ${username}`);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
@@ -61,6 +87,9 @@ router.post('/login', [
     // Remove password from response
     const { password_hash, ...userWithoutPassword } = user;
 
+    console.log(`✅ Login successful for user: ${username}, role: ${user.role}`);
+    logger.info(`User ${username} logged in successfully`);
+
     res.json({
       success: true,
       token,
@@ -68,7 +97,16 @@ router.post('/login', [
     });
   } catch (error) {
     logger.error('Login error:', error);
-    res.status(500).json({ success: false, message: 'Login failed' });
+    console.error('Login error details:', {
+      message: error.message,
+      stack: error.stack,
+      username: req.body?.username
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Login failed',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
   }
 });
 
