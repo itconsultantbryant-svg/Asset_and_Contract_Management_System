@@ -117,6 +117,15 @@ class Database {
         const { sql: convertedSql, params: convertedParams } = this.convertPlaceholders(sql, params);
         const modifiedSql = this.preparePostgresInsert(convertedSql);
         
+        // Debug logging for troubleshooting
+        if (process.env.NODE_ENV === 'production' && modifiedSql.includes('INSERT')) {
+          logger.debug('PostgreSQL INSERT query:', { 
+            original: sql.substring(0, 100), 
+            converted: modifiedSql.substring(0, 150),
+            paramCount: convertedParams.length 
+          });
+        }
+        
         this.db.query(modifiedSql, convertedParams)
           .then(result => {
             if (sql.trim().toUpperCase().startsWith('SELECT')) {
@@ -129,7 +138,14 @@ class Database {
               resolve({ lastID, changes: result.rowCount });
             }
           })
-          .catch(reject);
+          .catch(err => {
+            logger.error('PostgreSQL query error:', {
+              error: err.message,
+              sql: modifiedSql.substring(0, 200),
+              paramCount: convertedParams.length
+            });
+            reject(err);
+          });
       }
     });
   }
