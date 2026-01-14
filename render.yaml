@@ -4,7 +4,7 @@ services:
     name: acms-app
     env: node
     plan: starter
-    buildCommand: npm run install-all && cd client && npx react-scripts build
+    buildCommand: npm run install-all && cd client && npm install --include=dev && npm run build
     startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
