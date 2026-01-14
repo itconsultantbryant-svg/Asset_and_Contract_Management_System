@@ -35,12 +35,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Assets created this month
-      const assetsThisMonth = await db.get(`
-        SELECT COUNT(*) as count
-        FROM assets
-        WHERE deleted_at IS NULL
-          AND created_at >= ${SQL_START_OF_MONTH}
-      `);
+      const assetsThisMonth = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM assets WHERE deleted_at IS NULL AND created_at >= date_trunc('month', CURRENT_DATE)`
+          : `SELECT COUNT(*) as count FROM assets WHERE deleted_at IS NULL AND DATE(created_at) >= DATE('now', 'start of month')`
+      );
 
       // Assets by status
       const assetsByStatus = await db.query(`
@@ -214,12 +213,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Upcoming maintenance
-      const upcomingMaintenance = await db.get(`
-        SELECT COUNT(*) as count
-        FROM vehicle_maintenance
-        WHERE status IN ('Scheduled', 'In Progress')
-          AND (scheduled_date <= ${SQL_PLUS_30_DAYS} OR next_service_date <= ${SQL_PLUS_30_DAYS})
-      `);
+      const upcomingMaintenance = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM vehicle_maintenance WHERE status IN ('Scheduled', 'In Progress') AND (scheduled_date <= CURRENT_DATE + INTERVAL '30 days' OR next_service_date <= CURRENT_DATE + INTERVAL '30 days')`
+          : `SELECT COUNT(*) as count FROM vehicle_maintenance WHERE status IN ('Scheduled', 'In Progress') AND (scheduled_date <= DATE('now', '+30 days') OR next_service_date <= DATE('now', '+30 days'))`
+      );
 
       // Total fuel consumption (last 30 days)
       const fuelConsumption = await db.get(
@@ -341,12 +339,11 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Assets created this month
-      const assetsThisMonth = await db.get(`
-        SELECT COUNT(*) as count
-        FROM assets
-        WHERE deleted_at IS NULL
-          AND created_at >= ${SQL_START_OF_MONTH}
-      `);
+      const assetsThisMonth = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM assets WHERE deleted_at IS NULL AND created_at >= date_trunc('month', CURRENT_DATE)`
+          : `SELECT COUNT(*) as count FROM assets WHERE deleted_at IS NULL AND DATE(created_at) >= DATE('now', 'start of month')`
+      );
 
       // Total vehicles
       const totalVehicles = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = "Active"');
@@ -377,14 +374,11 @@ router.get('/summary', async (req, res) => {
       const activeContracts = await db.get(`
         SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND deleted_at IS NULL
       `);
-      const expiringContracts = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE status = 'Active'
-          AND end_date <= ${SQL_PLUS_90_DAYS}
-          AND end_date >= ${SQL_NOW_DATE}
-          AND deleted_at IS NULL
-      `);
+      const expiringContracts = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= CURRENT_DATE + INTERVAL '90 days' AND end_date >= CURRENT_DATE AND deleted_at IS NULL`
+          : `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= DATE('now', '+90 days') AND end_date >= DATE('now') AND deleted_at IS NULL`
+      );
 
       summary.assets = {
         total: totalAssets.count,
@@ -492,14 +486,11 @@ router.get('/summary', async (req, res) => {
       const activeContracts = await db.get(`
         SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND deleted_at IS NULL
       `);
-      const expiringContracts = await db.get(`
-        SELECT COUNT(*) as count
-        FROM contracts
-        WHERE status = 'Active'
-          AND end_date <= ${SQL_PLUS_90_DAYS}
-          AND end_date >= ${SQL_NOW_DATE}
-          AND deleted_at IS NULL
-      `);
+      const expiringContracts = await db.get(
+        isPostgres
+          ? `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= CURRENT_DATE + INTERVAL '90 days' AND end_date >= CURRENT_DATE AND deleted_at IS NULL`
+          : `SELECT COUNT(*) as count FROM contracts WHERE status = 'Active' AND end_date <= DATE('now', '+90 days') AND end_date >= DATE('now') AND deleted_at IS NULL`
+      );
 
       summary.stock = {
         totalItems: totalStockItems.count,
