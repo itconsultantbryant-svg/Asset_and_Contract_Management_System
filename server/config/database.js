@@ -88,9 +88,9 @@ class Database {
     
     // Only modify INSERT statements that don't already have RETURNING
     if (upper.startsWith('INSERT') && !upper.includes('RETURNING')) {
-      // Remove trailing semicolon if present
-      let cleanSql = trimmed.replace(/;\s*$/, '');
-      // Add RETURNING id before any semicolon
+      // Remove trailing semicolon and whitespace
+      let cleanSql = trimmed.replace(/[;\s]*$/, '').trim();
+      // Add RETURNING id at the end
       return `${cleanSql} RETURNING id`;
     }
     
