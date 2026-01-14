@@ -4,11 +4,11 @@ services:
     name: acms-app
     env: node
     plan: starter
-    buildCommand: npm install && cd server && npm install --production && cd ../client && npm install && npm run build
+    buildCommand: npm install && cd server && npm install --production && cd ../client && env -u NODE_ENV npm install && npm run build
     startCommand: cd server && npm start
     envVars:
-      # NODE_ENV will be set to production at runtime, but not during build
-      # This allows dev dependencies (like react-scripts) to be installed
+      - key: NODE_ENV
+        value: production
       - key: PORT
         value: 10000
       - key: DB_TYPE
