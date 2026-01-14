@@ -200,7 +200,7 @@ router.get('/summary', async (req, res) => {
       `);
 
       // Total vehicles
-      const totalVehicles = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = "Active"');
+      const totalVehicles = await db.get("SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = 'Active'");
 
       // Vehicles by type
       const vehiclesByType = await db.query(`
@@ -346,7 +346,7 @@ router.get('/summary', async (req, res) => {
       );
 
       // Total vehicles
-      const totalVehicles = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = "Active"');
+      const totalVehicles = await db.get("SELECT COUNT(*) as count FROM vehicles WHERE deleted_at IS NULL AND status = 'Active'");
 
       // Upcoming maintenance
       const upcomingMaintenance = await db.get(
@@ -539,11 +539,12 @@ router.get('/summary', async (req, res) => {
     summary.recentActivities = recentActivities;
 
     // User-specific notifications count
-    const unreadNotifications = await db.get(`
-      SELECT COUNT(*) as count
-      FROM notifications
-      WHERE user_id = ? AND is_read = 0
-    `, [userId]);
+    const unreadNotifications = await db.get(
+      isPostgres
+        ? `SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = false`
+        : `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0`,
+      [userId]
+    );
 
     summary.notifications = {
       unread: unreadNotifications.count
@@ -560,13 +561,18 @@ router.get('/summary', async (req, res) => {
       message: error.message,
       stack: error.stack,
       userRole: req.user?.role,
-      userId: req.user?.id
+      userId: req.user?.id,
+      dbType: process.env.DB_TYPE
     });
     logger.error('Get dashboard summary error:', error);
+    logger.error('Error stack:', error.stack);
+    
+    // Always return error message in production for debugging
     res.status(500).json({ 
       success: false, 
       message: 'Failed to get dashboard summary',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+      error: error.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
 });
