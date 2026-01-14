@@ -58,7 +58,7 @@ services:
           property: host
 
   # PostgreSQL Database
-  - type: pspg
+  - type: pg
     name: acms-database
     plan: starter
     databaseName: acms
