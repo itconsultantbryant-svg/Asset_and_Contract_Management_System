@@ -6,6 +6,15 @@ const logger = require('../utils/logger');
 
 router.use(authenticate);
 
+// Date helpers for SQLite vs PostgreSQL
+const isPostgres = db && db.type === 'postgresql';
+const SQL_NOW_DATE = isPostgres ? 'CURRENT_DATE' : "DATE('now')";
+const SQL_START_OF_MONTH = isPostgres ? "date_trunc('month', CURRENT_DATE)" : "DATE('now', 'start of month')";
+const SQL_PLUS_30_DAYS = isPostgres ? "CURRENT_DATE + INTERVAL '30 days'" : "DATE('now', '+30 days')";
+const SQL_PLUS_60_DAYS = isPostgres ? "CURRENT_DATE + INTERVAL '60 days'" : "DATE('now', '+60 days')";
+const SQL_PLUS_90_DAYS = isPostgres ? "CURRENT_DATE + INTERVAL '90 days'" : "DATE('now', '+90 days')";
+const SQL_MINUS_30_DAYS = isPostgres ? "CURRENT_DATE - INTERVAL '30 days'" : "DATE('now', '-30 days')";
+
 // Get dashboard summary - Role-specific comprehensive data
 router.get('/summary', async (req, res) => {
   try {
@@ -30,7 +39,7 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM assets
         WHERE deleted_at IS NULL
-          AND DATE(created_at) >= DATE('now', 'start of month')
+          AND created_at >= ${SQL_START_OF_MONTH}
       `);
 
       // Assets by status
@@ -136,7 +145,7 @@ router.get('/summary', async (req, res) => {
           SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value,
           SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value
         FROM stock_movements
-        WHERE DATE(created_at) >= DATE('now', 'start of month')
+        WHERE created_at >= ${SQL_START_OF_MONTH}
       `);
 
       // Active contracts
@@ -159,8 +168,8 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE status = 'Active'
-          AND end_date <= DATE('now', '+90 days')
-          AND end_date >= DATE('now')
+          AND end_date <= ${SQL_PLUS_90_DAYS}
+          AND end_date >= ${SQL_NOW_DATE}
           AND deleted_at IS NULL
       `);
 
@@ -168,8 +177,8 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE status = 'Active'
-          AND end_date <= DATE('now', '+60 days')
-          AND end_date >= DATE('now')
+          AND end_date <= ${SQL_PLUS_60_DAYS}
+          AND end_date >= ${SQL_NOW_DATE}
           AND deleted_at IS NULL
       `);
 
@@ -177,8 +186,8 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE status = 'Active'
-          AND end_date <= DATE('now', '+30 days')
-          AND end_date >= DATE('now')
+          AND end_date <= ${SQL_PLUS_30_DAYS}
+          AND end_date >= ${SQL_NOW_DATE}
           AND deleted_at IS NULL
       `);
 
@@ -194,7 +203,7 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE deleted_at IS NULL
-          AND DATE(created_at) >= DATE('now', 'start of month')
+          AND created_at >= ${SQL_START_OF_MONTH}
       `);
 
       // Pending contract approvals
@@ -222,18 +231,20 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM vehicle_maintenance
         WHERE status IN ('Scheduled', 'In Progress')
-          AND (scheduled_date <= DATE('now', '+30 days') OR next_service_date <= DATE('now', '+30 days'))
+          AND (scheduled_date <= ${SQL_PLUS_30_DAYS} OR next_service_date <= ${SQL_PLUS_30_DAYS})
       `);
 
       // Total fuel consumption (last 30 days)
       const fuelConsumption = await db.get(`
         SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost
         FROM fuel_logs
-        WHERE purchase_date >= DATE('now', '-30 days')
+        WHERE purchase_date >= ${SQL_MINUS_30_DAYS}
       `);
 
       // Total users
-      const totalUsers = await db.get('SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL AND is_active = 1');
+      const totalUsers = await db.get(
+        `SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL AND is_active = ${isPostgres ? 'true' : '1'}`
+      );
 
       // Users by role
       const usersByRole = await db.query(`
@@ -241,7 +252,7 @@ router.get('/summary', async (req, res) => {
           role,
           COUNT(*) as count
         FROM users
-        WHERE deleted_at IS NULL AND is_active = 1
+        WHERE deleted_at IS NULL AND is_active = ${isPostgres ? 'true' : '1'}
         GROUP BY role
       `);
 
@@ -347,7 +358,7 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM assets
         WHERE deleted_at IS NULL
-          AND DATE(created_at) >= DATE('now', 'start of month')
+          AND created_at >= ${SQL_START_OF_MONTH}
       `);
 
       // Total vehicles
@@ -358,14 +369,14 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM vehicle_maintenance
         WHERE status IN ('Scheduled', 'In Progress')
-          AND (scheduled_date <= DATE('now', '+30 days') OR next_service_date <= DATE('now', '+30 days'))
+          AND (scheduled_date <= ${SQL_PLUS_30_DAYS} OR next_service_date <= ${SQL_PLUS_30_DAYS})
       `);
 
       // Fuel consumption (last 30 days)
       const fuelConsumption = await db.get(`
         SELECT SUM(quantity) as total_quantity, SUM(total_cost) as total_cost
         FROM fuel_logs
-        WHERE purchase_date >= DATE('now', '-30 days')
+        WHERE purchase_date >= ${SQL_MINUS_30_DAYS}
       `);
 
       // Stock summary (read-only)
@@ -384,8 +395,8 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE status = 'Active'
-          AND end_date <= DATE('now', '+90 days')
-          AND end_date >= DATE('now')
+          AND end_date <= ${SQL_PLUS_90_DAYS}
+          AND end_date >= ${SQL_NOW_DATE}
           AND deleted_at IS NULL
       `);
 
@@ -460,7 +471,7 @@ router.get('/summary', async (req, res) => {
         FROM stock_movements sm
         LEFT JOIN stock_items si ON sm.stock_item_id = si.id
         LEFT JOIN stock_movement_reasons smr ON sm.reason_id = smr.id
-        WHERE sm.created_at >= DATE('now', '-30 days')
+        WHERE sm.created_at >= ${SQL_MINUS_30_DAYS}
         ORDER BY sm.created_at DESC
         LIMIT 10
       `);
@@ -472,7 +483,7 @@ router.get('/summary', async (req, res) => {
           SUM(CASE WHEN movement_type = 'Entry' THEN quantity * unit_cost ELSE 0 END) as entries_value,
           SUM(CASE WHEN movement_type = 'Exit' THEN quantity * unit_cost ELSE 0 END) as exits_value
         FROM stock_movements
-        WHERE DATE(created_at) >= DATE('now', 'start of month')
+        WHERE created_at >= ${SQL_START_OF_MONTH}
       `);
 
       // Stock entries (last 30 days)
@@ -480,7 +491,7 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value
         FROM stock_movements
         WHERE movement_type = 'Entry'
-          AND created_at >= DATE('now', '-30 days')
+          AND created_at >= ${SQL_MINUS_30_DAYS}
       `);
 
       // Stock exits (last 30 days)
@@ -488,7 +499,7 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count, SUM(quantity * unit_cost) as total_value
         FROM stock_movements
         WHERE movement_type = 'Exit'
-          AND created_at >= DATE('now', '-30 days')
+          AND created_at >= ${SQL_MINUS_30_DAYS}
       `);
 
       // Assets summary (view only)
@@ -511,8 +522,8 @@ router.get('/summary', async (req, res) => {
         SELECT COUNT(*) as count
         FROM contracts
         WHERE status = 'Active'
-          AND end_date <= DATE('now', '+90 days')
-          AND end_date >= DATE('now')
+          AND end_date <= ${SQL_PLUS_90_DAYS}
+          AND end_date >= ${SQL_NOW_DATE}
           AND deleted_at IS NULL
       `);
 
