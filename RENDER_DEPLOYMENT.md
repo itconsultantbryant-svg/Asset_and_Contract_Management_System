@@ -17,33 +17,47 @@ The project includes a `render.yaml` file that automates the deployment setup.
 
 #### Steps:
 
-1. **Push your code to GitHub** (if not already done)
+1. **Create PostgreSQL Database First** (Required)
+   - Go to Render Dashboard → "New +" → "PostgreSQL"
+   - Name: `acms-database`
+   - Database: `acms`
+   - User: `acms_user`
+   - Plan: Starter (or higher for production)
+   - Region: Choose closest to your users
+   - Click "Create Database"
+   - **Note the connection details** from the "Connections" tab (you'll need them)
+
+2. **Push your code to GitHub** (if not already done)
    ```bash
    git add .
    git commit -m "Prepare for Render deployment"
    git push origin main
    ```
 
-2. **Connect Repository to Render**
+3. **Connect Repository to Render**
    - Log in to Render Dashboard
    - Click "New +" → "Blueprint"
    - Connect your GitHub repository
    - Select the repository: `Asset_and_Contract_Management_System`
    - Render will automatically detect `render.yaml`
 
-3. **Review and Deploy**
+4. **Review and Deploy**
    - Render will parse `render.yaml` and show you the services to create
    - Review the configuration:
      - **Web Service**: `acms-app` (Node.js service)
-     - **PostgreSQL Database**: `acms-database`
-   - Click "Apply" to create all services
+   - Click "Apply" to create the web service
 
-4. **Configure Environment Variables**
-   - After services are created, go to each service's settings
-   - Add any additional environment variables if needed
-   - The `render.yaml` already configures most variables automatically
+5. **Configure Database Environment Variables**
+   - After the web service is created, go to its settings → "Environment"
+   - Add the database connection variables (from step 1):
+     - `DB_HOST` - from your PostgreSQL service
+     - `DB_PORT` - from your PostgreSQL service (usually 5432)
+     - `DB_NAME` - `acms` (or your database name)
+     - `DB_USER` - `acms_user` (or your database user)
+     - `DB_PASSWORD` - from your PostgreSQL service
+   - The `render.yaml` already configures other variables automatically
 
-5. **Wait for Deployment**
+6. **Wait for Deployment**
    - Render will build and deploy your application
    - Monitor the build logs for any issues
    - The first deployment may take 5-10 minutes
