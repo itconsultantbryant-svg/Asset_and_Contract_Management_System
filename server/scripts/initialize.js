@@ -478,12 +478,32 @@ const schemas = {
   }
 };
 
-// PostgreSQL schema (similar structure with PostgreSQL syntax)
-const postgresSchemas = {
-  // Convert SQLite schemas to PostgreSQL
-  // Main differences: SERIAL instead of AUTOINCREMENT, TIMESTAMP instead of DATETIME
-  // Implementation would convert all schemas similarly
-};
+// Helper function to convert SQLite schema to PostgreSQL
+function convertToPostgres(sqliteSchema) {
+  return sqliteSchema
+    // Replace AUTOINCREMENT with SERIAL
+    .replace(/INTEGER PRIMARY KEY AUTOINCREMENT/g, 'SERIAL PRIMARY KEY')
+    // Replace DATETIME with TIMESTAMP
+    .replace(/DATETIME/g, 'TIMESTAMP')
+    // Replace INTEGER DEFAULT 1/0 with BOOLEAN DEFAULT true/false for boolean fields
+    .replace(/is_active INTEGER DEFAULT 1/g, 'is_active BOOLEAN DEFAULT true')
+    .replace(/is_active INTEGER DEFAULT 0/g, 'is_active BOOLEAN DEFAULT false')
+    .replace(/is_read INTEGER DEFAULT 0/g, 'is_read BOOLEAN DEFAULT false')
+    .replace(/is_read INTEGER DEFAULT 1/g, 'is_read BOOLEAN DEFAULT true')
+    .replace(/email_sent INTEGER DEFAULT 0/g, 'email_sent BOOLEAN DEFAULT false')
+    .replace(/email_sent INTEGER DEFAULT 1/g, 'email_sent BOOLEAN DEFAULT true')
+    // Replace INTEGER with INTEGER for other cases (keep as is)
+    // Replace REAL with NUMERIC or keep REAL (PostgreSQL supports both)
+    // Replace TEXT with TEXT (PostgreSQL supports TEXT)
+    // Remove IF NOT EXISTS clause handling (PostgreSQL supports it)
+    .replace(/CREATE TABLE IF NOT EXISTS/g, 'CREATE TABLE IF NOT EXISTS');
+}
+
+// PostgreSQL schema (converted from SQLite)
+const postgresSchemas = {};
+for (const [tableName, schema] of Object.entries(schemas.sqlite)) {
+  postgresSchemas[tableName] = convertToPostgres(schema);
+}
 
 async function createTables() {
   const dbType = process.env.DB_TYPE || 'sqlite';

@@ -12,7 +12,9 @@ export const useAuth = () => {
   return context;
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Construct API URL - append /api if not already present
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`;
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;

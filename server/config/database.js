@@ -52,6 +52,25 @@ class Database {
     }
   }
 
+  // Helper to modify INSERT queries for PostgreSQL to include RETURNING id
+  preparePostgresInsert(sql) {
+    if (this.type !== 'postgresql') return sql;
+    
+    const trimmed = sql.trim();
+    const upper = trimmed.toUpperCase();
+    
+    // Only modify INSERT statements that don't already have RETURNING
+    if (upper.startsWith('INSERT') && !upper.includes('RETURNING')) {
+      // Extract table name and add RETURNING id
+      const match = trimmed.match(/INSERT\s+INTO\s+(\w+)/i);
+      if (match) {
+        return `${trimmed} RETURNING id`;
+      }
+    }
+    
+    return sql;
+  }
+
   // Unified query method
   query(sql, params = []) {
     return new Promise((resolve, reject) => {
@@ -68,13 +87,19 @@ class Database {
           });
         }
       } else {
-        // PostgreSQL
-        this.db.query(sql, params)
+        // PostgreSQL - modify INSERT to include RETURNING id
+        const modifiedSql = this.preparePostgresInsert(sql);
+        
+        this.db.query(modifiedSql, params)
           .then(result => {
             if (sql.trim().toUpperCase().startsWith('SELECT')) {
               resolve(result.rows);
             } else {
-              resolve({ lastID: result.insertId, changes: result.rowCount });
+              // For INSERT with RETURNING clause, get the ID from rows
+              const lastID = result.rows && result.rows.length > 0 && result.rows[0].id 
+                ? result.rows[0].id 
+                : null;
+              resolve({ lastID, changes: result.rowCount });
             }
           })
           .catch(reject);

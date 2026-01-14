@@ -305,6 +305,16 @@ npm test
 
 ## 📦 Deployment
 
+### Render.com Deployment (Recommended)
+
+The easiest way to deploy is using Render.com. See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed instructions.
+
+**Quick Start:**
+1. Push your code to GitHub
+2. Connect your repository to Render
+3. Render will automatically detect `render.yaml` and set up everything
+4. Your app will be live in minutes!
+
 ### Production Build
 
 ```bash
@@ -315,6 +325,10 @@ npm run build
 # The build folder contains the production-ready React app
 # Serve it with a static file server or integrate with Express
 ```
+
+### Traditional Server Deployment
+
+For VPS/server deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
 
 ### Environment Setup
 

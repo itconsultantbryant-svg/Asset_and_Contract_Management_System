@@ -94,6 +94,24 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Serve React app in production
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  const buildPath = path.join(__dirname, '../client/build');
+  
+  // Serve static files from React build
+  app.use(express.static(buildPath));
+  
+  // Handle React routing - return all requests to React app
+  app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ success: false, message: 'Route not found' });
+    }
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   logger.error('Error:', err);
@@ -104,10 +122,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
+// 404 handler (only for development, production handled above)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Route not found' });
+  });
+}
 
 // Initialize database and start server
 async function startServer() {

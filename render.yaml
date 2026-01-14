@@ -1,0 +1,66 @@
+services:
+  # Main Web Service (serves both frontend and backend)
+  - type: web
+    name: acms-app
+    env: node
+    plan: starter
+    buildCommand: npm run install-all && cd client && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_TYPE
+        value: postgresql
+      - key: DB_HOST
+        fromDatabase:
+          name: acms-database
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: acms-database
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: acms-database
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: acms-database
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: acms-database
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: acms-app
+          property: host
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: acms-app
+          property: host
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: acms-app
+          property: host
+
+  # PostgreSQL Database
+  - type: pspg
+    name: acms-database
+    plan: starter
+    databaseName: acms
+    user: acms_user
+
