@@ -76,17 +76,30 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
+      console.log('🔐 Attempting login for:', username);
+      console.log('🌐 API URL:', API_URL);
+      
       const response = await axios.post('/auth/login', { username, password });
-      const { token, user } = response.data;
+      console.log('✅ Login response:', response.data);
+      
+      if (response.data.success && response.data.token && response.data.user) {
+        const { token, user } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        setUser(user);
 
-      toast.success('Login successful');
-      return { success: true };
+        toast.success('Login successful');
+        return { success: true };
+      } else {
+        console.error('❌ Invalid response format:', response.data);
+        toast.error('Invalid response from server');
+        return { success: false, message: 'Invalid response from server' };
+      }
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      console.error('❌ Login error:', error);
+      console.error('Error response:', error.response?.data);
+      const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);
       return { success: false, message };
     }
