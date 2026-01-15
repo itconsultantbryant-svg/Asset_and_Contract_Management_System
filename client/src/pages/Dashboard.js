@@ -98,25 +98,11 @@ const Dashboard = () => {
           subtitle: `${summary.vehicles?.maintenanceDue || 0} need maintenance`
         },
         {
-          title: 'Pending Transfers',
-          value: summary.assets?.pendingTransfers || 0,
-          icon: FiClock,
-          color: '#f39c12',
-          subtitle: 'Awaiting approval'
-        },
-        {
           title: 'Active Contracts',
           value: summary.contracts?.active || 0,
           icon: FiFileText,
           color: '#9b59b6',
           subtitle: `${summary.contracts?.expiringSoon || 0} expiring soon`
-        },
-        {
-          title: 'Stock Items',
-          value: summary.stock?.totalItems || 0,
-          icon: FiBox,
-          color: '#2ecc71',
-          subtitle: `Value: $${(summary.stock?.totalValue || 0).toLocaleString()}`
         },
         {
           title: 'Unread Notifications',
@@ -157,18 +143,11 @@ const Dashboard = () => {
           subtitle: `Value: $${(summary.stock?.exits30Days?.value || 0).toLocaleString()}`
         },
         {
-          title: 'Total Assets',
-          value: summary.assets?.total || 0,
-          icon: FiPackage,
-          color: '#3498db',
-          subtitle: 'View only'
-        },
-        {
-          title: 'Active Contracts',
-          value: summary.contracts?.active || 0,
-          icon: FiFileText,
-          color: '#9b59b6',
-          subtitle: `${summary.contracts?.expiringSoon || 0} expiring soon`
+          title: 'Unread Notifications',
+          value: summary.notifications?.unread || 0,
+          icon: FiAlertCircle,
+          color: '#e74c3c',
+          subtitle: 'Require attention'
         }
       ];
     }
@@ -245,13 +224,6 @@ const Dashboard = () => {
           type: 'danger',
           message: `${summary.stock.lowStockCount} stock items are low and need reordering`,
           icon: FiAlertTriangle
-        });
-      }
-      if (summary.contracts?.expiringSoon > 0) {
-        alerts.push({
-          type: 'info',
-          message: `${summary.contracts.expiringSoon} contracts expiring soon`,
-          icon: FiFileText
         });
       }
     }
@@ -529,22 +501,6 @@ const Dashboard = () => {
                 </ul>
               ) : (
                 <p className="empty-state">No stock category data available</p>
-              )}
-            </div>
-
-            <div className="dashboard-card">
-              <h3>Assets by Status</h3>
-              {summary.assets?.byStatus?.length > 0 ? (
-                <ul className="status-list">
-                  {summary.assets.byStatus.map((item, index) => (
-                    <li key={index}>
-                      <span>{item.status || 'Unknown'}</span>
-                      <span className="badge badge-info">{item.count}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="empty-state">No assets data available</p>
               )}
             </div>
 

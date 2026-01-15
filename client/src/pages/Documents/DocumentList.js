@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import axios from 'axios';
 import { FiArchive, FiDownload, FiEye, FiFile, FiSearch, FiFilter, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import DataTable from '../../components/DataTable';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const DocumentList = () => {
+  const { isAdmin, isAssetManager, isStockManager } = useAuth();
   const [filters, setFilters] = useState({
     document_code: '',
     file_name: '',
     project_id: '',
     category: '',
     from_date: '',
-    to_date: ''
+    to_date: '',
+    entity_type: isAssetManager ? 'Asset' : isStockManager ? 'StockEntry,StockExit' : ''
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -23,7 +26,7 @@ const DocumentList = () => {
   });
 
   const { data, isLoading, refetch } = useQuery(
-    ['documents', filters],
+    ['documents', filters, isAssetManager, isStockManager],
     async () => {
       const params = new URLSearchParams();
       Object.keys(filters).forEach(key => {
@@ -31,6 +34,14 @@ const DocumentList = () => {
           params.append(key, filters[key]);
         }
       });
+      
+      // Apply role-based filtering
+      if (isAssetManager && !params.get('entity_type')) {
+        params.append('entity_type', 'Asset');
+      } else if (isStockManager && !params.get('entity_type')) {
+        params.append('entity_type', 'StockEntry,StockExit');
+      }
+      
       const response = await axios.get(`/documents?${params.toString()}`);
       return response.data.documents;
     }
@@ -163,7 +174,11 @@ const DocumentList = () => {
             <FiArchive style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Documents & Archive
           </h2>
-          <p className="page-subtitle">View and manage all system documents</p>
+          <p className="page-subtitle">
+            {isAssetManager ? 'View and manage asset-related documents' : 
+             isStockManager ? 'View and manage stock-related documents' : 
+             'View and manage all system documents'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={() => handleExport('excel')}>
@@ -174,10 +189,12 @@ const DocumentList = () => {
             <FiDownload style={{ marginRight: '5px' }} />
             Export PDF
           </button>
-          <Link to="/documents/create" className="btn btn-primary">
-            <FiFile style={{ marginRight: '5px' }} />
-            Upload Document
-          </Link>
+          {(isAdmin || isAssetManager || isStockManager) && (
+            <Link to="/documents/create" className="btn btn-primary">
+              <FiFile style={{ marginRight: '5px' }} />
+              Upload Document
+            </Link>
+          )}
         </div>
       </div>
 

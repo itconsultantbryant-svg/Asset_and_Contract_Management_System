@@ -55,7 +55,7 @@ const Layout = () => {
       description: 'Overview and statistics'
     });
 
-    // Assets Module
+    // Assets Module - Only Admin and Asset Manager
     if (isAdmin || isAssetManager) {
       items.push({
         type: 'group',
@@ -67,17 +67,9 @@ const Layout = () => {
           { path: '/assets/create', label: 'Create Asset', icon: FiPlus, description: 'Add new asset' },
         ]
       });
-    } else if (isStockManager) {
-      items.push({
-        type: 'single',
-        path: '/assets',
-        label: 'Assets',
-        icon: FiPackage,
-        description: 'View assets (read-only)'
-      });
     }
 
-    // Stock Module
+    // Stock Module - Only Admin and Stock Manager
     if (isAdmin || isStockManager) {
       items.push({
         type: 'group',
@@ -91,17 +83,9 @@ const Layout = () => {
           { path: '/stock/valuation', label: 'Stock Valuation', icon: FiBarChart2, description: 'View stock valuation' },
         ]
       });
-    } else if (isAssetManager) {
-      items.push({
-        type: 'single',
-        path: '/stock',
-        label: 'Stock',
-        icon: FiBox,
-        description: 'View stock (read-only)'
-      });
     }
 
-    // Vehicles Module
+    // Vehicles Module - Only Admin and Asset Manager
     if (isAdmin || isAssetManager) {
       items.push({
         type: 'group',
@@ -117,31 +101,33 @@ const Layout = () => {
       });
     }
 
-    // Contracts Module - All authenticated users
-    items.push({
-      type: 'group',
-      key: 'contracts',
-      label: 'Contract Management',
-      icon: FiFileText,
-      items: [
-        { path: '/contracts', label: 'All Contracts', icon: FiList, description: 'View all contracts' },
-        ...(isAdmin || isAssetManager ? [
-          { path: '/contracts/create', label: 'Create Contract', icon: FiPlus, description: 'Add new contract' },
-        ] : []),
-        { path: '/contracts/alerts', label: 'Expiration Alerts', icon: FiAlertCircle, description: 'Contracts expiring soon' },
-      ]
-    });
+    // Contracts Module - Admin and Asset Manager only (Asset Managers can view contracts related to assets)
+    if (isAdmin || isAssetManager) {
+      items.push({
+        type: 'group',
+        key: 'contracts',
+        label: 'Contract Management',
+        icon: FiFileText,
+        items: [
+          { path: '/contracts', label: 'All Contracts', icon: FiList, description: 'View all contracts' },
+          ...(isAdmin ? [
+            { path: '/contracts/create', label: 'Create Contract', icon: FiPlus, description: 'Add new contract' },
+          ] : []),
+          { path: '/contracts/alerts', label: 'Expiration Alerts', icon: FiAlertCircle, description: 'Contracts expiring soon' },
+        ]
+      });
+    }
 
-    // Documents/Archived Module - All authenticated users
+    // Documents/Archived Module - All authenticated users (but filtered by role)
     items.push({
       type: 'single',
       path: '/documents',
       label: 'Documents & Archive',
       icon: FiArchive,
-      description: 'View and manage all system documents'
+      description: 'View and manage documents'
     });
 
-    // Reports Module - All authenticated users
+    // Reports Module - All authenticated users (but filtered by role)
     items.push({
       type: 'single',
       path: '/reports',
