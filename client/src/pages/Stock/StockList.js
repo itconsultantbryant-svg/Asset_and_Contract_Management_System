@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiEye, FiBox } from 'react-icons/fi';
+import { FiEye, FiBox, FiDownload } from 'react-icons/fi';
 import DataTable from '../../components/DataTable';
 import FormInput from '../../components/FormInput';
 
@@ -39,6 +39,30 @@ const StockList = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleExport = async (format) => {
+    try {
+      const params = new URLSearchParams();
+      Object.keys(filters).forEach(key => {
+        if (filters[key]) params.append(key, filters[key]);
+      });
+      params.append('format', format);
+      
+      const response = await axios.get(`/reports/stock?${params.toString()}`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `stock-report.${format === 'excel' ? 'xlsx' : 'pdf'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Export error:', error);
+    }
   };
 
   const columns = [
@@ -84,6 +108,12 @@ const StockList = () => {
             <FiBox style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Stock Items
           </h3>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn btn-secondary" onClick={() => handleExport('excel')}>
+              <FiDownload style={{ marginRight: '5px' }} />
+              Export Excel
+            </button>
+          </div>
         </div>
 
         <div className="filters-section">

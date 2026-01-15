@@ -10,11 +10,11 @@ router.use(authenticate);
 
 // Generate unique contract number
 async function generateContractNumber() {
-  const prefix = 'CNT';
+  const prefix = 'PIL';
   const year = new Date().getFullYear();
-  const count = await db.get('SELECT COUNT(*) as count FROM contracts WHERE contract_number LIKE ?', [`${prefix}-${year}-%`]);
+  const count = await db.get('SELECT COUNT(*) as count FROM contracts WHERE contract_number LIKE ?', [`${prefix}-CNT-${year}-%`]);
   const sequence = (count.count || 0) + 1;
-  return `${prefix}-${year}-${String(sequence).padStart(5, '0')}`;
+  return `${prefix}-CNT-${year}-${String(sequence).padStart(5, '0')}`;
 }
 
 // Get all contracts

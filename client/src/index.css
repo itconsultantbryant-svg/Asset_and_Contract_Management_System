@@ -35,12 +35,12 @@ code {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #004C97;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #0056b3;
+  background-color: #003366;
 }
 
 .btn-secondary {
@@ -91,8 +91,8 @@ code {
 
 .form-control:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: #004C97;
+  box-shadow: 0 0 0 2px rgba(0, 76, 151, 0.25);
 }
 
 .card {
@@ -196,7 +196,7 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #007bff;
+  color: #004C97;
   transition: all 0.3s;
 }
 
@@ -247,8 +247,8 @@ code {
 }
 
 .module-tabs a.active {
-  color: #007bff;
-  border-bottom-color: #007bff;
+  color: #004C97;
+  border-bottom-color: #004C97;
 }
 
 .detail-grid {

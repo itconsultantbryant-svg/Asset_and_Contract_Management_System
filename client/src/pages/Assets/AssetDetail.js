@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { FiArrowLeft } from 'react-icons/fi';
+import { toast } from 'react-toastify';
+import FormInput from '../../components/FormInput';
+import Modal from '../../components/Modal';
 
 const AssetDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [showWriteOffModal, setShowWriteOffModal] = useState(false);
+  const [writeOffData, setWriteOffData] = useState({
+    writeoff_date: new Date().toISOString().split('T')[0],
+    reason: '',
+    notes: ''
+  });
 
   const { data, isLoading, error } = useQuery(
     ['asset', id],
@@ -16,10 +26,43 @@ const AssetDetail = () => {
     }
   );
 
+  const writeOffMutation = useMutation(
+    (data) => axios.post(`/assets/${id}/writeoff`, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['asset', id]);
+        queryClient.invalidateQueries('assets');
+        toast.success('Asset written off successfully');
+        setShowWriteOffModal(false);
+        setWriteOffData({
+          writeoff_date: new Date().toISOString().split('T')[0],
+          reason: '',
+          notes: ''
+        });
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to write-off asset');
+      }
+    }
+  );
+
+  const handleWriteOffChange = (e) => {
+    const { name, value } = e.target;
+    setWriteOffData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleWriteOffSubmit = (e) => {
+    e.preventDefault();
+    writeOffMutation.mutate(writeOffData);
+  };
+
   if (isLoading) return <div className="loading">Loading asset details...</div>;
   if (error) return <div className="error">Failed to load asset details</div>;
 
   const asset = data?.asset;
+  const isWriteOff = asset?.status_name?.toLowerCase().includes('write') || 
+                     asset?.status_name?.toLowerCase().includes('used') ||
+                     asset?.status_name?.toLowerCase() === 'used';
 
   return (
     <div>
@@ -31,6 +74,14 @@ const AssetDetail = () => {
       <div className="card">
         <div className="page-header">
           <h2>{asset?.name} ({asset?.asset_id})</h2>
+          {!isWriteOff && (
+            <button 
+              className="btn btn-danger" 
+              onClick={() => setShowWriteOffModal(true)}
+            >
+              Write-Off Asset
+            </button>
+          )}
         </div>
 
         <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
@@ -116,6 +167,59 @@ const AssetDetail = () => {
           </div>
         )}
       </div>
+
+      <Modal 
+        isOpen={showWriteOffModal} 
+        onClose={() => setShowWriteOffModal(false)}
+        title="Write-Off Asset"
+      >
+        <form onSubmit={handleWriteOffSubmit}>
+          <FormInput
+            label="Write-Off Date"
+            name="writeoff_date"
+            type="date"
+            value={writeOffData.writeoff_date}
+            onChange={handleWriteOffChange}
+            required
+          />
+          <FormInput
+            label="Reason"
+            name="reason"
+            type="textarea"
+            value={writeOffData.reason}
+            onChange={handleWriteOffChange}
+            rows={4}
+            required
+            placeholder="Enter reason for write-off..."
+          />
+          <FormInput
+            label="Notes"
+            name="notes"
+            type="textarea"
+            value={writeOffData.notes}
+            onChange={handleWriteOffChange}
+            rows={3}
+            placeholder="Additional notes (optional)..."
+          />
+          
+          <div className="form-actions" style={{ marginTop: '20px' }}>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={() => setShowWriteOffModal(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-danger" 
+              disabled={writeOffMutation.isLoading}
+            >
+              {writeOffMutation.isLoading ? 'Processing...' : 'Write-Off Asset'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

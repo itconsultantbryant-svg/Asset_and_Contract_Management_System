@@ -23,7 +23,10 @@ import {
   FiDroplet,
   FiTool,
   FiCheckCircle,
-  FiClock
+  FiClock,
+  FiArchive,
+  FiDownload,
+  FiBarChart2
 } from 'react-icons/fi';
 import NotificationCenter from './NotificationCenter';
 import './Layout.css';
@@ -130,6 +133,24 @@ const Layout = () => {
       ]
     });
 
+    // Documents/Archived Module - All authenticated users
+    items.push({
+      type: 'single',
+      path: '/documents',
+      label: 'Documents & Archive',
+      icon: FiArchive,
+      description: 'View and manage all system documents'
+    });
+
+    // Reports Module - All authenticated users
+    items.push({
+      type: 'single',
+      path: '/reports',
+      label: 'Reports',
+      icon: FiBarChart2,
+      description: 'Generate and export reports'
+    });
+
     // Administration Module - Admin only
     if (isAdmin) {
       items.push({
@@ -162,8 +183,12 @@ const Layout = () => {
       <nav className="navbar">
         <div className="navbar-content">
           <div className="navbar-brand">
-            <FiPackage style={{ marginRight: '10px', fontSize: '20px' }} />
-            ACMS - Plan International Liberia
+            <img 
+              src="/plan_international_liberia_logo.jpeg" 
+              alt="Plan International Liberia" 
+              className="navbar-logo"
+            />
+            <span>ACMS - Plan International Liberia</span>
           </div>
           <div className="navbar-user">
             <NotificationCenter />

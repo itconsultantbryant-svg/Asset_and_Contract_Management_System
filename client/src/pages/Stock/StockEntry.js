@@ -21,6 +21,13 @@ const StockEntry = () => {
     movement_date: new Date().toISOString().split('T')[0]
   });
   const [errors, setErrors] = useState({});
+  const [documentFile, setDocumentFile] = useState(null);
+  const [documentData, setDocumentData] = useState({
+    file_name: '',
+    code: '',
+    category: '',
+    project_id: ''
+  });
 
   const { data: items } = useQuery('stock-items', async () => {
     const response = await axios.get('/stock/items');
@@ -50,10 +57,33 @@ const StockEntry = () => {
   const entryMutation = useMutation(
     (data) => axios.post('/stock/entry', data),
     {
-      onSuccess: () => {
+      onSuccess: async (response) => {
         queryClient.invalidateQueries('stock-items');
         queryClient.invalidateQueries(['stock-items', {}]);
-        toast.success('Stock entry recorded successfully');
+        
+        // Upload document if provided
+        if (documentFile && documentData.file_name) {
+          try {
+            const formDataDoc = new FormData();
+            formDataDoc.append('file', documentFile);
+            formDataDoc.append('file_name', documentData.file_name);
+            formDataDoc.append('code', documentData.code || '');
+            formDataDoc.append('category', documentData.category || '');
+            formDataDoc.append('project_id', documentData.project_id || formData.project_id || '');
+            formDataDoc.append('entity_type', 'StockEntry');
+            formDataDoc.append('entity_id', response.data.movementId);
+
+            await axios.post('/documents', formDataDoc, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Stock entry and document recorded successfully');
+          } catch (error) {
+            toast.warning('Stock entry recorded but document upload failed');
+          }
+        } else {
+          toast.success('Stock entry recorded successfully');
+        }
+        
         setFormData({
           stock_item_id: '',
           quantity: '',
@@ -66,6 +96,8 @@ const StockEntry = () => {
           project_id: '',
           movement_date: new Date().toISOString().split('T')[0]
         });
+        setDocumentFile(null);
+        setDocumentData({ file_name: '', code: '', category: '', project_id: '' });
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to record stock entry');
@@ -86,6 +118,17 @@ const StockEntry = () => {
         return newErrors;
       });
     }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setDocumentFile(e.target.files[0]);
+    }
+  };
+
+  const handleDocumentDataChange = (e) => {
+    const { name, value } = e.target;
+    setDocumentData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -219,6 +262,56 @@ const StockEntry = () => {
           onChange={handleChange}
           rows={3}
         />
+
+        <div className="form-section" style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
+          <h3 style={{ marginBottom: '20px', color: '#004C97' }}>Document Upload (Optional)</h3>
+          <div className="form-row">
+            <FormInput
+              label="File Name"
+              name="file_name"
+              value={documentData.file_name}
+              onChange={handleDocumentDataChange}
+              placeholder="Enter document file name"
+            />
+            <FormInput
+              label="Document Code"
+              name="code"
+              value={documentData.code}
+              onChange={handleDocumentDataChange}
+              placeholder="Enter document code"
+            />
+          </div>
+          <div className="form-row">
+            <FormInput
+              label="Category"
+              name="category"
+              value={documentData.category}
+              onChange={handleDocumentDataChange}
+              placeholder="Enter document category"
+            />
+            <FormInput
+              label="Project (for document)"
+              name="project_id"
+              type="select"
+              value={documentData.project_id}
+              onChange={handleDocumentDataChange}
+              options={[
+                { value: '', label: 'Select Project' },
+                ...(projects || []).map(proj => ({ value: proj.id, label: proj.name }))
+              ]}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="document_file">Upload Document</label>
+            <input
+              type="file"
+              id="document_file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
+              onChange={handleFileChange}
+            />
+            <small className="form-text">Accepted formats: PDF, Word, Excel, Images</small>
+          </div>
+        </div>
 
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/stock')}>

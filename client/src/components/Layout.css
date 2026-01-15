@@ -5,7 +5,7 @@
 }
 
 .navbar {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #004C97 0%, #00A3E0 100%);
   color: white;
   padding: 15px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -24,11 +24,18 @@
 }
 
 .navbar-brand {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   display: flex;
   align-items: center;
   color: white;
+  gap: 12px;
+}
+
+.navbar-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }
 
 .navbar-user {
@@ -76,7 +83,7 @@
 
 .sidebar {
   width: 280px;
-  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(180deg, #004C97 0%, #0066B3 100%);
   color: white;
   min-height: calc(100vh - 60px);
   padding: 0;

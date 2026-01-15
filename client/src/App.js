@@ -8,6 +8,8 @@ import AssetModule from './pages/Assets/AssetModule';
 import StockModule from './pages/Stock/StockModule';
 import VehicleModule from './pages/Vehicles/VehicleModule';
 import ContractModule from './pages/Contracts/ContractModule';
+import DocumentModule from './pages/Documents/DocumentModule';
+import ReportsModule from './pages/Reports/ReportsModule';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -71,6 +73,8 @@ function AppRoutes() {
         <Route path="stock/*" element={<StockModule />} />
         <Route path="vehicles/*" element={<VehicleModule />} />
         <Route path="contracts/*" element={<ContractModule />} />
+        <Route path="documents/*" element={<DocumentModule />} />
+        <Route path="reports/*" element={<ReportsModule />} />
       </Route>
     </Routes>
   );

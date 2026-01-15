@@ -10,11 +10,11 @@ router.use(authenticate);
 
 // Generate unique vehicle ID
 async function generateVehicleId() {
-  const prefix = 'VEH';
+  const prefix = 'PIL';
   const year = new Date().getFullYear();
-  const count = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE vehicle_id LIKE ?', [`${prefix}-${year}-%`]);
+  const count = await db.get('SELECT COUNT(*) as count FROM vehicles WHERE vehicle_id LIKE ?', [`${prefix}-VEH-${year}-%`]);
   const sequence = (count.count || 0) + 1;
-  return `${prefix}-${year}-${String(sequence).padStart(5, '0')}`;
+  return `${prefix}-VEH-${year}-${String(sequence).padStart(5, '0')}`;
 }
 
 // Get all vehicles

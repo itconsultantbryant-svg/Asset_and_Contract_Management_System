@@ -116,7 +116,7 @@
 
 .notification-item.unread {
   background-color: #e7f3ff;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid #004C97;
 }
 
 .notification-item.unread:hover {
@@ -149,7 +149,7 @@
 .notification-mark-read {
   background: none;
   border: none;
-  color: #007bff;
+  color: #004C97;
   cursor: pointer;
   padding: 5px;
   border-radius: 4px;

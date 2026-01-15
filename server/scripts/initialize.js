@@ -179,6 +179,9 @@ const schemas = {
         warranty_expiry DATE,
         depreciation_rate REAL,
         current_value REAL,
+        useful_life REAL,
+        useful_life_type TEXT CHECK(useful_life_type IN ('Month', 'Year')),
+        useful_life_value INTEGER,
         qr_code TEXT,
         barcode TEXT,
         notes TEXT,
@@ -474,6 +477,27 @@ const schemas = {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
+    `,
+    documents: `
+      CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_code TEXT UNIQUE NOT NULL,
+        file_name TEXT NOT NULL,
+        original_file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        category TEXT,
+        project_id INTEGER,
+        entity_type TEXT,
+        entity_id INTEGER,
+        uploaded_by INTEGER NOT NULL,
+        uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_active INTEGER DEFAULT 1,
+        deleted_at DATETIME,
+        FOREIGN KEY (project_id) REFERENCES projects(id),
+        FOREIGN KEY (uploaded_by) REFERENCES users(id)
+      )
     `
   }
 };
@@ -544,6 +568,7 @@ async function seedInitialData() {
   const statuses = [
     { name: 'Active', code: 'ACTIVE' },
     { name: 'In Use', code: 'IN_USE' },
+    { name: 'Used', code: 'USED' },
     { name: 'In Maintenance', code: 'MAINTENANCE' },
     { name: 'Retired', code: 'RETIRED' },
     { name: 'Disposed', code: 'DISPOSED' }

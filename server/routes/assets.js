@@ -11,7 +11,7 @@ router.use(authenticate);
 
 // Generate unique asset ID
 async function generateAssetId() {
-  const prefix = 'AST';
+  const prefix = 'PIL';
   const year = new Date().getFullYear();
   const count = await db.get('SELECT COUNT(*) as count FROM assets WHERE asset_id LIKE ?', [`${prefix}-${year}-%`]);
   const sequence = (count.count || 0) + 1;
@@ -141,7 +141,8 @@ router.post('/', authorize('Administrator', 'Asset Manager'), [
     const {
       name, description, category_id, brand_id, status_id, serial_number, model,
       purchase_date, purchase_price, currency, supplier_id, project_id, location_id,
-      assigned_to, warranty_expiry, depreciation_rate, notes
+      assigned_to, warranty_expiry, depreciation_rate, useful_life, useful_life_type,
+      useful_life_value, notes
     } = req.body;
 
     // Generate QR code
@@ -152,12 +153,13 @@ router.post('/', authorize('Administrator', 'Asset Manager'), [
         asset_id, name, description, category_id, brand_id, status_id, serial_number,
         model, purchase_date, purchase_price, currency, supplier_id, project_id,
         location_id, assigned_to, warranty_expiry, depreciation_rate, current_value,
-        qr_code, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        useful_life, useful_life_type, useful_life_value, qr_code, notes, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       assetId, name, description, category_id, brand_id, status_id, serial_number,
       model, purchase_date, purchase_price, currency || 'USD', supplier_id, project_id,
       location_id, assigned_to, warranty_expiry, depreciation_rate, purchase_price,
+      useful_life || null, useful_life_type || null, useful_life_value || null,
       qrCode, notes, req.user.id
     ]);
 
@@ -201,7 +203,8 @@ router.put('/:id', authorize('Administrator', 'Asset Manager'), async (req, res)
     const allowedFields = [
       'name', 'description', 'category_id', 'brand_id', 'status_id', 'serial_number',
       'model', 'purchase_date', 'purchase_price', 'currency', 'supplier_id', 'project_id',
-      'location_id', 'assigned_to', 'warranty_expiry', 'depreciation_rate', 'notes'
+      'location_id', 'assigned_to', 'warranty_expiry', 'depreciation_rate',
+      'useful_life', 'useful_life_type', 'useful_life_value', 'notes'
     ];
 
     for (const field of allowedFields) {
@@ -362,6 +365,56 @@ router.put('/transfers/:id', authorize('Administrator'), [
   } catch (error) {
     logger.error('Approve transfer error:', error);
     res.status(500).json({ success: false, message: 'Failed to process transfer' });
+  }
+});
+
+// Write-off asset
+router.post('/:id/writeoff', authorize('Administrator', 'Asset Manager'), [
+  body('writeoff_date').notEmpty().withMessage('Write-off date is required'),
+  body('reason').notEmpty().withMessage('Reason is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const assetId = req.params.id;
+    const { writeoff_date, reason, notes } = req.body;
+
+    const asset = await db.get('SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL', [assetId]);
+    if (!asset) {
+      return res.status(404).json({ success: false, message: 'Asset not found' });
+    }
+
+    // Update asset status to "Used" (write-off status)
+    // First, we need to check if there's a "Used" status in asset_statuses
+    const usedStatus = await db.get("SELECT id FROM asset_statuses WHERE name = 'Used' OR name = 'Write-off' LIMIT 1");
+    if (usedStatus) {
+      await db.query('UPDATE assets SET status_id = ?, updated_at = ? WHERE id = ?', 
+        [usedStatus.id, new Date().toISOString(), assetId]);
+    }
+
+    // Log history
+    await db.query(`
+      INSERT INTO asset_history (asset_id, action, notes, performed_by)
+      VALUES (?, ?, ?, ?)
+    `, [assetId, 'WRITEOFF', `Write-off: ${reason}. ${notes || ''}`, req.user.id]);
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'WRITEOFF',
+      entity: 'ASSET',
+      entityId: assetId,
+      description: `Write-off asset: ${asset.asset_id} - ${reason}`,
+      newData: { writeoff_date, reason, notes },
+      ipAddress: req.ip
+    });
+
+    res.json({ success: true, message: 'Asset written off successfully' });
+  } catch (error) {
+    logger.error('Write-off asset error:', error);
+    res.status(500).json({ success: false, message: 'Failed to write-off asset' });
   }
 });
 
