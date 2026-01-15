@@ -25,8 +25,7 @@ import {
   FiCheckCircle,
   FiClock,
   FiArchive,
-  FiDownload,
-  FiBarChart2
+  FiDownload
 } from 'react-icons/fi';
 import NotificationCenter from './NotificationCenter';
 import './Layout.css';
