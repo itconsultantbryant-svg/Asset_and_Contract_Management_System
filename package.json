@@ -1,7 +1,7 @@
 {
-  "name": "acms-plan-liberia",
+  "name": "acms",
   "version": "1.0.0",
-  "description": "Asset & Contract Management System for Plan International Liberia",
+  "description": "Asset & Contract Management System",
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -16,10 +16,9 @@
   "keywords": [
     "asset-management",
     "contract-management",
-    "inventory",
-    "plan-international"
+    "inventory"
   ],
-  "author": "Plan International Liberia",
+  "author": "",
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2"

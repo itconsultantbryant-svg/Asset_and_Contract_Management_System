@@ -76,7 +76,7 @@ async function sendEmailNotification(userId, subject, message) {
             ${message}
           </div>
           <p style="color: #7f8c8d; font-size: 12px;">
-            This is an automated notification from ACMS - Plan International Liberia
+            This is an automated notification from ACMS
           </p>
         </div>
       `

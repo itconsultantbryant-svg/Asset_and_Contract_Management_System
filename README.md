@@ -1,5 +1,4 @@
 # Asset & Contract Management System (ACMS)
-## Plan International Liberia
 
 A comprehensive web-based system for managing assets, stock, vehicles, fuel, and contracts with full audit trails and donor compliance features.
 
@@ -115,7 +114,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASSWORD=your_app_password
-EMAIL_FROM=noreply@planliberia.org
+EMAIL_FROM=noreply@example.com
 
 # Security
 BCRYPT_ROUNDS=12
@@ -409,7 +408,7 @@ Set up a cron job to run notification checks:
 
 ## 📄 License
 
-This system is developed for Plan International Liberia.
+This system is a generic Asset & Contract Management System.
 
 ## 👥 Support
 

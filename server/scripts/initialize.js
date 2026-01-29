@@ -559,7 +559,7 @@ async function seedInitialData() {
     await db.query(`
       INSERT INTO users (username, email, password_hash, full_name, role, is_active)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, ['admin', 'admin@planliberia.org', adminPassword, 'System Administrator', 'Administrator', isActive]);
+    `, ['admin', 'admin@example.com', adminPassword, 'System Administrator', 'Administrator', isActive]);
     
     logger.info('Default admin user created (username: admin, password: admin123)');
   }

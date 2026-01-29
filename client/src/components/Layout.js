@@ -168,12 +168,7 @@ const Layout = () => {
       <nav className="navbar">
         <div className="navbar-content">
           <div className="navbar-brand">
-            <img 
-              src="/plan_international_liberia_logo.jpeg" 
-              alt="Plan International Liberia" 
-              className="navbar-logo"
-            />
-            <span>ACMS - Plan International Liberia</span>
+            <span>ACMS</span>
           </div>
           <div className="navbar-user">
             <NotificationCenter />

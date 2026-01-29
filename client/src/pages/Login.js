@@ -27,14 +27,8 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <img 
-            src="/plan_international_liberia_logo.jpeg" 
-            alt="Plan International Liberia Logo" 
-            className="login-logo"
-          />
           <h1>ACMS</h1>
           <p>Asset & Contract Management System</p>
-          <p className="login-subtitle">Plan International Liberia</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
